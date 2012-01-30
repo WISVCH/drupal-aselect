@@ -1,0 +1,200 @@
+<?php
+
+/* A-Select Drupal hooks */
+function aselect_menu()
+{
+	$items = array(
+		'admin/config/content/aselect' => array(
+			'title' => 'A-Select Authentication',
+			'description' =< 'Configuration for the A-Select module',
+
+			'page callback' => 'drupal_get_form'
+			'page arguments' => array('aselect_admin_form'),
+
+			'access arguments' => array('access administration pages'),
+			'type' => MENU_NORMAL_ITEM,
+		),
+		'aselect/login' => array(
+			'title' => t('A-Select login'),
+			'description' => t('Initiate ASelect login.'),
+
+			'page callback' => 'aselect_login'
+
+			'access callback' => 'user_is_anonymous',
+
+			'type' => MENU_CALLBACK,
+		),
+		'aselect/verify' => array(
+			'title' => t('A-Select verification'),
+			'description' => t('Verify your A-Select session.'),
+
+			'page callback' => 'aselect_verify',
+
+			'access callback' => 'user_is_anonymous',
+
+			'type' => MENU_CALLBACK,
+		),
+	);
+
+	return $items;
+}
+
+function aselect_admin_form($form, $state)
+{
+	$form['aselect_app_id'] = array(
+		'#title' => t('A-Select application ID'),
+		'#description' => t('The application ID assigned to this web app.'),
+
+		'#type' => 'textfield',
+		'#default_value' => variable_get('aselect_app_id', ''),
+		'#required' => true,
+	);
+	$form'aselect_server_url'] = array(
+		'#title' => t('A-Select server URL'),
+		'#description' => t('The A-Select server base URL.'),
+
+		'#type' => 'textfield',
+		'#default_value' => variable_get('aselect_server_url', ''),
+		'#required' => true,
+	);
+	$form['aselect_server_id'] = array(
+		'#title' => t('A-Select server ID'),
+		'#description' => t('The server ID used to identify the server.'),
+
+		'#type' => 'textfield',
+		'#default_value' => variable_get('aselect_server_id', 'openaselect'),
+		'#required' => true,
+	);
+
+	$form['aselect_sign'] = array(
+		'#title' => t('Enable request signing'),
+		'#description' => t('Whether or not to sign the request sent to the A-Select server.'),
+
+		'#type' => 'radios'
+		'#options' => array(
+			'1' => t('Enable'),
+			'0' => t('Disable'),
+		),
+		'#default_value' => variable_get('aselect_sign', 0),
+		'#required' => true,
+	);
+	$form['aselect_keyfile'] = array(
+		'#title' => t('Signature keyfile'),
+		'#description' => t('File path to the keyfile used to sign the request.'),
+
+		'#type' => 'textfield',
+		'#default_value' => variable_get('aselect_keyfile', ''),
+		'#required' => false,
+	);
+	$form['aselect_keyphrase'] = array(
+		'#title' => t('Signature keyphrase'),
+		'#description' => t('The passphrase used to decrypt the keyfile.'),
+
+		'#type' => 'password',
+		'#default_value' => variable_get('aselect_keyphrase', ''),
+		'#required' => false,
+	);
+	$form['aselect_sign_algorithm'] = array(
+		'#title' => t('Request signing algorithm'),
+		'#description' => t('The algorithm used to sign the request.'),
+
+		'#type' => 'select',
+		'#options' => array(
+			'md2' => 'MD2',
+			'md4' => 'MD4',
+			'md5' => 'MD5',
+			'sha1' => 'SHA-1',
+			'dss1' => 'DSS-1',
+		),
+		'#default_value' => variable_get('aselect_sign_algorithm', 'sha1'),
+		'#required' => false,
+	);
+
+	return system_settings_form($form);
+}
+
+/* Drupal 'pages' */
+function aselect_login()
+{
+	if(user_is_logged_in()) {
+		/* NOPE. */
+		drupal_goto(url('/'));
+	}
+
+	$returnParams = array();
+	if(isset($_GET['destination'])) {
+		$returnParams['dest'] = $_GET['destination'];
+	}
+	$callback = url('aselect/verify', array('absolute' => true, 'query' => $returnParams));
+
+	$params = array(
+		'request' => 'authenticate',
+		'app_id' => variable_get('aselect_app_id'),
+		'app_url' => $callback,
+		'a-select-server' => variable_get('aselect_server_id')
+	);
+	$response = aselect_perform_request($params);
+
+	if(intval($response['result_code']) != 0) {
+		
+	}
+	
+}
+
+/* A-Select functions */
+function aselect_perform_request($params)
+{
+	if(variable_get('aselect_sign', 0)) {
+		$params['signature'] = aselect_sign_request($params);
+	}
+
+	$url = http_build_url(variable_get('aselect_server_url', 'localhost/openaselect'), array(
+		'scheme' => 'https',
+		'query' => http_build_query($params),
+	), HTTP_URL_REPLACE | HTTP_URL_JOIN_QUERY);
+
+	$response = drupal_http_request($url);
+
+	if($response->code != 200) {
+		return null;
+	}
+	return parse_str($response->data);
+}
+
+function aselect_sign_request($params)
+{
+	$algorithms = array(
+		'dss1' => OPENSSL_ALGO_DSS1,
+		'sha1' => OPENSSL_ALGO_SHA1
+		'md5' => OPENSSL_ALGO_MD5,
+		'md4' => OPENSSL_ALGO_MD4,
+		'md2' => OPENSSL_ALGO_Md2,
+	);
+
+	$keyData = file_get_contents(variable_get('aselect_keyfile', ''));
+	if(!$keyData) {
+		return null;
+	} 
+	$key = openssl_pkey_get_private($keyData, variable_get('aselect_keyphrase', ''));
+	if(!$key) {
+		return null;
+	}
+	if(!isset($algorithms[variable_get('aselect_sign_algorithm', 'sha1')])) {
+		return null;
+	}
+	$algorithm = $algorithms[variable_get('aselect_sign_algorithm', 'sha1')];
+
+	if(isset($params['signature'])) {
+		unset($params['signature']);
+	}
+	if(isset($params['request'])) {
+		unset($params['request']);
+	}
+	sort($signParams);
+
+	$signature = '';
+	if(!openssl_sign(http_build_query($signParams), $data, $key, $algorithm)) {
+		return null;
+	}
+	return $signature;
+}
