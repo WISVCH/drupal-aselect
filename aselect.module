@@ -119,12 +119,10 @@ function aselect_login()
 	}
 	$callback = url('aselect/verify', array('absolute' => true, 'query' => $returnParams));
 
-	$params = array(
-		'request' => 'authenticate',
+	$response = aselect_perform_request('authenticate', array(
 		'app_id' => variable_get('aselect_app_id'),
 		'app_url' => $callback,
-	);
-	$response = aselect_perform_request($params);
+	));
 
 	if(intval($response['result_code']) != 0) {
 		aselect_show_error('contacting the login server', $response['result_code']);
@@ -148,12 +146,10 @@ function aselect_verify()
 		return;
 	}
 
-	$params = array(
-		'request' => 'verify_credentials',
+	$response = aselect_perform_request('verify_credentials', array(
 		'rid' => $_GET['rid'],
 		'aselect_credentials' => $_GET['aselect_credentials'],
-	);
-	$response = aselect_perform_request($params);
+	));
 
 	if(intval($response['result_code']) != 0) {
 		aselect_show_error('verifying login session', $response['result_code']);
@@ -180,11 +176,9 @@ function aselect_verify()
 /* A-Select logout callback, log the user out from current and every other SSO session. */
 function aselect_logout()
 {
-	$params = array(
-		'request' => 'kill_ticket',
+	$response = aselect_perform_request('kill_ticket', array(
 		'ticket' => $_SESSION['aselect']['#tgt'],
-	);
-	$response = aselect_perform_request($params);
+	));
 
 	if(intval($response['result_code']) != 0) {
 		aselect_show_error('logging out', $response['result_code']);
@@ -212,8 +206,9 @@ function aselect_show_error($activity, $code)
 }
 
 /* Perform actual A-Select request to server. Returns an associative array containing the server response. */
-function aselect_perform_request($params)
+function aselect_perform_request($request, $params)
 {
+	$params['request'] = $request;
 	$query = http_build_query($params);
 	$sock = fsockopen('localhost', variable_get('aselect_agent_port', 1495));
 	if(!$sock) {
