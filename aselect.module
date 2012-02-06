@@ -79,9 +79,9 @@ function aselect_install()
 function aselect_menu()
 {
 	$items = array(
-		'admin/config/content/aselect' => array(
-			'title' => 'A-Select Authentication',
-			'description' => 'Configuration for the A-Select module',
+		'admin/config/people/aselect' => array(
+			'title' => t('A-Select Authentication'),
+			'description' => 't(Configuration for authentication and authorization using A-Select.'),
 
 			'page callback' => 'drupal_get_form',
 			'page arguments' => array('aselect_admin_form'),
@@ -207,13 +207,11 @@ function aselect_login()
 	}
 	$callback = url('aselect/verify', array('absolute' => true, 'query' => $returnParams));
 
-	$params = array(
-		'request' => 'authenticate',
-		'app_id' => variable_get('aselect_app_id'),
-		'app_url' => $callback,
-		'a-select-server' => variable_get('aselect_server_id')
-	);
-	$response = aselect_perform_request($params);
+	$response = aselect_perform_request('authenticate', array(
+                'app_id' => variable_get('aselect_app_id'),
+                'app_url' => $callback,
+                'a-select-server' => variable_get('aselect_server_id')
+        ));
 
 	if(intval($response['result_code']) != 0) {
 		aselect_show_error('contacting the login server', $response['result_code']);
@@ -237,13 +235,11 @@ function aselect_verify()
 		return;
 	}
 
-	$params = array(
-		'request' => 'verify_credentials',
-		'a-select-server' => variable_get('aselect_server_id'),
-		'rid' => $_GET['rid'],
-		'aselect_credentials' => $_GET['aselect_credentials'],
-	);
-	$response = aselect_perform_request($params);
+	$response = aselect_perform_request('verify_credentials', array(
+                'a-select-server' => variable_get('aselect_server_id'),
+                'rid' => $_GET['rid'],
+                'aselect_credentials' => $_GET['aselect_credentials'],
+        ));
 
 	if(intval($response['result_code']) != 0) {
 		aselect_show_error('verifying login session', $response['result_code']);
@@ -251,6 +247,15 @@ function aselect_verify()
 	}
 
 	/* TODO: Store user, login was succesful. */
+
+	/* Store session variables. */
+	if(!isset($_SESSION['aselect'])) {
+		$_SESSION['aselect'] = array();
+	}
+	$_SESSION['aselect']['#uid'] = $response['uid'];
+	if(isset($response['attributes'])) {
+		$_SESSION['aselect']['#attributes'] = $response['attributes'];
+	}
 
 	if(isset($_GET['dest'])) {
 		drupal_goto($_GET['dest']);
@@ -285,11 +290,12 @@ function aselect_show_error($activity, $code)
 }
 
 /* Perform actual A-Select request to server. Returns an associative array containing the server response. */
-function aselect_perform_request($params)
+function aselect_perform_request($request, $params)
 {
 	if(variable_get('aselect_sign', 0)) {
 		$params['signature'] = aselect_sign_request($params);
 	}
+	$params['request'] = $request;
 
 	$url = http_build_url(variable_get('aselect_server_url', 'localhost/openaselect'), array(
 		'scheme' => 'https',
