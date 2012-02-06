@@ -1,8 +1,13 @@
 <?php
 
-/* A-Select Drupal hooks */
+/**
+ * A-Select Drupal hooks
+ */
+
+/* A-Select Drupal install hook. Implements hook_install(). */
 function aselect_install()
 {
+	/* Semi-human-friendly error messages. */
 	$errorCodes = array(
 		'0000' => t('No error.'),
 		'0001' => t('Internal error occurred in A-Select.'),
@@ -50,16 +55,27 @@ function aselect_install()
 	);
 	variable_set('aselect_error_codes', $errorCodes);
 
-	$signAlgorithms = array(
-		'sha1' => array('SHA-1', OPENSSL_ALGO_SHA1),
-		'dss1' => array('DSS1', OPENSSL_ALGO_DSS1),
-		'md2' => array('MD2', OPENSSL_ALGO_MD2),
-		'md4' => array('MD4', OPENSSL_ALGO_MD4),
-		'md5' => array('MD5', OPENSSL_ALGO_MD5),
+	/* Build supported algorithm array */
+	$signAlgorithms = array();
+	if(defined('OPENSSL_ALGO_SHA1')) {
+		$signAlgorithms['sha1'] = array('SHA-1', OPENSSL_ALGO_SHA1);
+	}
+	if(defined('OPENSSL_ALGO_DSS1')) {
+		$signAlgorithms['dss1'] = array('DSS1', OPENSSL_ALGO_DSS1);
+	}
+	if(defined('OPENSSL_ALGO_MD2')) {
+		$signAlgorithms['md2'] = array('MD2', OPENSSL_ALGO_MD2);
+	}
+	if(defined('OPENSSL_ALGO_MD4')) {
+		$signAlgorithms['md2'] = array('MD2', OPENSSL_ALGO_MD2);
+	}
+	if(defined('OPENSSL_ALGO_MD5')) {
+		$signAlgorithms['md5'] = array('MD5', OPENSSL_ALGO_MD5);
 	);
 	variable_set('aselect_sign_algorithms', $signAlgorithms);
 }
 
+/* A-Select Drupal menu hook. Implements hook_menu(). */
 function aselect_menu()
 {
 	$items = array(
@@ -72,8 +88,7 @@ function aselect_menu()
 
 			'access arguments' => array('access administration pages'),
 			'type' => MENU_NORMAL_ITEM,
-		)
-,
+		),
 		'aselect/login' => array(
 			'title' => t('A-Select login'),
 			'description' => t('Initiate ASelect login.'),
@@ -109,6 +124,12 @@ function aselect_menu()
 	return $items;
 }
 
+
+/**
+ * A-Select Drupal callbacks.
+ */
+
+/* Drupal A-Select admin configuration callback, builds up the A-Select section in the configuration. */
 function aselect_admin_form($form, $state)
 {
 	$form['aselect_app_id'] = array(
@@ -177,7 +198,7 @@ function aselect_admin_form($form, $state)
 	return system_settings_form($form);
 }
 
-/* Drupal 'pages' */
+/* A-Select login callback, performs an actual login redirection. */
 function aselect_login()
 {
 	$returnParams = array();
@@ -208,6 +229,7 @@ function aselect_login()
 	drupal_goto($redirectURL);
 }
 
+/* A-Select verification function, verifies a login session when the user is redirected back from the A-Select server. */
 function aselect_verify()
 {
 	if(!isset($_GET['rid']) || !isset($_GET['aselect_credentials'])) {
@@ -237,11 +259,18 @@ function aselect_verify()
 	}
 }
 
+/* A-Select logout callback, log the user out from current and every other SSO session. */
 function aselect_logout()
 {
 
 }
 
+
+/**
+ * A-Select API wrapper/helper functions.
+ */
+
+/* Format an A-Select error nicely. */
 function aselect_show_error($activity, $code)
 {
 	$errorCodes = variable_get('aselect_error_codes');
@@ -255,7 +284,7 @@ function aselect_show_error($activity, $code)
 	drupal_set_message($errorMessage, 'error');
 }
 
-/* A-Select functions */
+/* Perform actual A-Select request to server. Returns an associative array containing the server response. */
 function aselect_perform_request($params)
 {
 	if(variable_get('aselect_sign', 0)) {
@@ -275,6 +304,7 @@ function aselect_perform_request($params)
 	return parse_str($response->data);
 }
 
+/* Sign A-Select request for extra security, if configured and/or required by server. */
 function aselect_sign_request($params)
 {
 	/* Get (algorithm name => openssl definition) from algorithm storage. */
