@@ -90,14 +90,6 @@ function aselect_admin_form($form, $state)
 		'#default_value' => variable_get('aselect_app_id', ''),
 		'#required' => true,
 	);
-	$form['aselect_server_id'] = array(
-		'#title' => t('A-Select server ID'),
-		'#description' => t('The server ID used to identify the server.'),
-
-		'#type' => 'textfield',
-		'#default_value' => variable_get('aselect_server_id', 'openaselect'),
-		'#required' => true,
-	);
 	$form['aselect_agent_port'] = array(
 		'#title' => t('A-Select agent port'),
 		'#description' => t('The TCP port the A-Select agent is listening on.'),
@@ -158,10 +150,14 @@ function aselect_verify()
 
 	/* TODO: Store user, login was succesful. */
 	var_dump($response);
+
+	/* Store variables in session. */
 	if(!isset($_SESSION['aselect'])) {
 		$_SESSION['aselect'] = array();
 	}
 	$_SESSION['aselect']['#tgt'] = $response['ticket'];
+	$_SESSION['aselect']['#uid'] = $response['uid'];
+	$_SESSION['aselect']['#organization'] = $response['organization'];
 	if(isset($response['attributes'])) {
 		$_SESSION['aselect']['#attributes'] = $response['attributes'];
 	}
@@ -184,6 +180,9 @@ function aselect_logout()
 		aselect_show_error('logging out', $response['result_code']);
 		return;
 	}
+
+	/* Remove our own session variables. */
+	unset($_SESSION['aselect']);
 }
 
 
