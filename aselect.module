@@ -29,9 +29,9 @@ function aselect_install()
 function aselect_menu()
 {
 	$items = array(
-		'admin/config/content/aselect' => array(
+		'admin/config/people/aselect' => array(
 			'title' => 'A-Select Authentication',
-			'description' => 'Configuration for the A-Select module',
+			'description' => 'Configuration for the authentication and authorization using A-Select.',
 
 			'page callback' => 'drupal_get_form',
 			'page arguments' => array('aselect_admin_form'),
