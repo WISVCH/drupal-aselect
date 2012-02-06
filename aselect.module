@@ -121,7 +121,8 @@ function aselect_login()
 		return;
 	}
 
-	$redirectURL = http_build_url($response['as_url'], array(
+	$redirectURL = url($response['as_url'], array(
+		'absolute' => true,
 		'query' => http_build_query(array(
 			'a-select-server' => $response['a-select-server'],
 			'rid' => $response['rid'],
@@ -209,7 +210,7 @@ function aselect_perform_request($request, $params)
 {
 	$params['request'] = $request;
 	$query = http_build_query($params);
-	$sock = fsockopen('localhost', variable_get('aselect_agent_port', 1495));
+	$sock = fsockopen('localhost', variable_get('aselect_agent_port', 1496));
 	if(!$sock) {
 		drupal_set_message(t('An error occurred while contacting the A-Select agent.'), 'error');
 		return null;
