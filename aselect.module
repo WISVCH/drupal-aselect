@@ -162,6 +162,13 @@ function aselect_verify()
 
 	/* TODO: Store user, login was succesful. */
 	var_dump($response);
+	if(!isset($_SESSION['aselect'])) {
+		$_SESSION['aselect'] = array();
+	}
+	$_SESSION['aselect']['#tgt'] = $response['ticket'];
+	if(isset($response['attributes'])) {
+		$_SESSION['aselect']['#attributes'] = $response['attributes'];
+	}
 
 	if(isset($_GET['dest'])) {
 		drupal_goto($_GET['dest']);
@@ -173,7 +180,16 @@ function aselect_verify()
 /* A-Select logout callback, log the user out from current and every other SSO session. */
 function aselect_logout()
 {
+	$params = array(
+		'request' => 'kill_ticket',
+		'ticket' => $_SESSION['aselect']['#tgt'],
+	);
+	$response = aselect_perform_request($params);
 
+	if(intval($response['result_code']) != 0) {
+		aselect_show_error('logging out', $response['result_code']);
+		return;
+	}
 }
 
 
