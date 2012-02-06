@@ -10,6 +10,5 @@ Requirements
 ------------
 - PHP >=5.0
   - OpenSSL extension enabled for message signing
-  - pecl_http extension
 - Drupal >=7.0
 - The A-Select agent installed and running
