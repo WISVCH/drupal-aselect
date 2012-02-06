@@ -54,25 +54,6 @@ function aselect_install()
 		'7002' => t('Internal error occurred in SAM.'),
 	);
 	variable_set('aselect_error_codes', $errorCodes);
-
-	/* Build supported algorithm array */
-	$signAlgorithms = array();
-	if(defined('OPENSSL_ALGO_SHA1')) {
-		$signAlgorithms['sha1'] = array('SHA-1', OPENSSL_ALGO_SHA1);
-	}
-	if(defined('OPENSSL_ALGO_DSS1')) {
-		$signAlgorithms['dss1'] = array('DSS1', OPENSSL_ALGO_DSS1);
-	}
-	if(defined('OPENSSL_ALGO_MD2')) {
-		$signAlgorithms['md2'] = array('MD2', OPENSSL_ALGO_MD2);
-	}
-	if(defined('OPENSSL_ALGO_MD4')) {
-		$signAlgorithms['md2'] = array('MD2', OPENSSL_ALGO_MD2);
-	}
-	if(defined('OPENSSL_ALGO_MD5')) {
-		$signAlgorithms['md5'] = array('MD5', OPENSSL_ALGO_MD5);
-	);
-	variable_set('aselect_sign_algorithms', $signAlgorithms);
 }
 
 /* A-Select Drupal menu hook. Implements hook_menu(). */
@@ -140,14 +121,6 @@ function aselect_admin_form($form, $state)
 		'#default_value' => variable_get('aselect_app_id', ''),
 		'#required' => true,
 	);
-	$form['aselect_server_url'] = array(
-		'#title' => t('A-Select server URL'),
-		'#description' => t('The A-Select server base URL.'),
-
-		'#type' => 'textfield',
-		'#default_value' => variable_get('aselect_server_url', ''),
-		'#required' => true,
-	);
 	$form['aselect_server_id'] = array(
 		'#title' => t('A-Select server ID'),
 		'#description' => t('The server ID used to identify the server.'),
@@ -156,43 +129,13 @@ function aselect_admin_form($form, $state)
 		'#default_value' => variable_get('aselect_server_id', 'openaselect'),
 		'#required' => true,
 	);
-
-	$form['aselect_sign'] = array(
-		'#title' => t('Enable request signing'),
-		'#description' => t('Whether or not to sign the request sent to the A-Select server.'),
-
-		'#type' => 'radios',
-		'#options' => array(
-			'1' => t('Enable'),
-			'0' => t('Disable'),
-		),
-		'#default_value' => variable_get('aselect_sign', 0),
-		'#required' => true,
-	);
-	$form['aselect_keyfile'] = array(
-		'#title' => t('Signature keyfile'),
-		'#description' => t('File path to the keyfile used to sign the request.'),
+	$form['aselect_agent_port'] = array(
+		'#title' => t('A-Select agent port'),
+		'#description' => t('The TCP port the A-Select agent is listening on.'),
 
 		'#type' => 'textfield',
-		'#default_value' => variable_get('aselect_keyfile', ''),
-		'#required' => false,
-	);
-	$form['aselect_keyphrase'] = array(
-		'#title' => t('Signature keyphrase'),
-		'#description' => t('The passphrase used to decrypt the keyfile.'),
-
-		'#type' => 'password',
-		'#default_value' => variable_get('aselect_keyphrase', ''),
-		'#required' => false,
-	);
-	$form['aselect_sign_algorithm'] = array(
-		'#title' => t('Request signing algorithm'),
-		'#description' => t('The algorithm used to sign the request.'),
-
-		'#type' => 'select',
-		'#options' => array_map('array_shift', variable_get('aselect_sign_algorithms')),
-		'#default_value' => variable_get('aselect_sign_algorithm', 'sha1'),
-		'#required' => false,
+		'#default_value' => variable_get('aselect_agent_port', 1495),
+		'#required' => true,
 	);
 
 	return system_settings_form($form);
@@ -211,7 +154,6 @@ function aselect_login()
 		'request' => 'authenticate',
 		'app_id' => variable_get('aselect_app_id'),
 		'app_url' => $callback,
-		'a-select-server' => variable_get('aselect_server_id')
 	);
 	$response = aselect_perform_request($params);
 
@@ -239,7 +181,6 @@ function aselect_verify()
 
 	$params = array(
 		'request' => 'verify_credentials',
-		'a-select-server' => variable_get('aselect_server_id'),
 		'rid' => $_GET['rid'],
 		'aselect_credentials' => $_GET['aselect_credentials'],
 	);
@@ -251,6 +192,7 @@ function aselect_verify()
 	}
 
 	/* TODO: Store user, login was succesful. */
+	var_dump($response);
 
 	if(isset($_GET['dest'])) {
 		drupal_goto($_GET['dest']);
@@ -287,53 +229,16 @@ function aselect_show_error($activity, $code)
 /* Perform actual A-Select request to server. Returns an associative array containing the server response. */
 function aselect_perform_request($params)
 {
-	if(variable_get('aselect_sign', 0)) {
-		$params['signature'] = aselect_sign_request($params);
-	}
-
-	$url = http_build_url(variable_get('aselect_server_url', 'localhost/openaselect'), array(
-		'scheme' => 'https',
-		'query' => http_build_query($params),
-	), HTTP_URL_REPLACE | HTTP_URL_JOIN_QUERY);
-
-	$response = drupal_http_request($url);
-
-	if($response->code != 200) {
+	$query = http_build_query($params);
+	$sock = fsockopen('localhost', variable_get('aselect_agent_port', 1495));
+	if(!$sock) {
+		drupal_set_message(t('An error occurred while contacting the A-Select agent.'), 'error');
 		return null;
 	}
-	return parse_str($response->data);
-}
 
-/* Sign A-Select request for extra security, if configured and/or required by server. */
-function aselect_sign_request($params)
-{
-	/* Get (algorithm name => openssl definition) from algorithm storage. */
-	$algorithms = array_map('array_pop', variable_get('aselect_sign_algorithms'));
+	fwrite($sock, $query . "\n");
+	$response = file_get_contents($sock);
+	fclose($sock);
 
-	$keyData = file_get_contents(variable_get('aselect_keyfile', ''));
-	if(!$keyData) {
-		return null;
-	} 
-	$key = openssl_pkey_get_private($keyData, variable_get('aselect_keyphrase', ''));
-	if(!$key) {
-		return null;
-	}
-	if(!isset($algorithms[variable_get('aselect_sign_algorithm', 'sha1')])) {
-		return null;
-	}
-	$algorithm = $algorithms[variable_get('aselect_sign_algorithm', 'sha1')];
-
-	if(isset($params['signature'])) {
-		unset($params['signature']);
-	}
-	if(isset($params['request'])) {
-		unset($params['request']);
-	}
-	sort($signParams);
-
-	$signature = '';
-	if(!openssl_sign(http_build_query($signParams), $data, $key, $algorithm)) {
-		return null;
-	}
-	return $signature;
+	return parse_str($response);
 }
