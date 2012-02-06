@@ -9,6 +9,6 @@ This will come in handy for those not able or not wanting to run Apache 1.3/2.0 
 Requirements
 ------------
 - PHP >=5.0
-- Drupal >=6.0
-- PHP OpenSSL module enabled for message signing
+  - OpenSSL extension enabled for message signing
+- Drupal >=7.0
 - Some kind of ASelect server (including app authorization) to authenticate to
