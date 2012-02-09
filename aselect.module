@@ -102,11 +102,12 @@ function aselect_login()
 
   $redirectURL = url($response['as_url'], array(
     'absolute' => true,
-    'query' => http_build_query(array(
+    'query' => array(
       'a-select-server' => $response['a-select-server'],
       'rid' => $response['rid'],
-    )),
+    ),
   ));
+
   drupal_goto($redirectURL);
 }
 
@@ -128,9 +129,6 @@ function aselect_verify()
     return;
   }
 
-  /* TODO: Store user, login was succesful. */
-  var_dump($response);
-
   /* Store variables in session. */
   if (!isset($_SESSION['aselect'])) {
     $_SESSION['aselect'] = array();
@@ -145,7 +143,7 @@ function aselect_verify()
   if (isset($_GET['dest'])) {
     drupal_goto($_GET['dest']);
   } else {
-    drupal_goto(url('/'));
+    drupal_goto('/');
   }
 }
 
@@ -214,8 +212,10 @@ function _aselect_perform_request($request, $params)
   }
 
   fwrite($sock, $query . "\n");
-  $response = file_get_contents($sock);
+  $response = stream_get_contents($sock);
   fclose($sock);
 
-  return parse_str($response);
+  parse_str($response, $response_parsed);
+
+  return $response_parsed;
 }
