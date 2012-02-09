@@ -7,50 +7,50 @@
 /* A-Select Drupal menu hook. Implements hook_menu(). */
 function aselect_menu()
 {
-	$items = array(
-		'admin/config/people/aselect' => array(
-			'title' => 'A-Select Authentication',
-			'description' => 'Configuration for the authentication and authorization using A-Select.',
+  $items = array(
+    'admin/config/people/aselect' => array(
+      'title' => 'A-Select Authentication',
+      'description' => 'Configuration for the authentication and authorization using A-Select.',
 
-			'page callback' => 'drupal_get_form',
-			'page arguments' => array('aselect_admin_form'),
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('aselect_admin_form'),
 
-			'access arguments' => array('access administration pages'),
-			'type' => MENU_NORMAL_ITEM,
-		),
-		'aselect/login' => array(
-			'title' => t('A-Select login'),
-			'description' => t('Initiate ASelect login.'),
+      'access arguments' => array('access administration pages'),
+      'type' => MENU_NORMAL_ITEM,
+    ),
+    'aselect/login' => array(
+      'title' => t('A-Select login'),
+      'description' => t('Initiate ASelect login.'),
 
-			'page callback' => 'aselect_login',
+      'page callback' => 'aselect_login',
 
-			'access callback' => 'user_is_anonymous',
+      'access callback' => 'user_is_anonymous',
 
-			'type' => MENU_CALLBACK,
-		),
-		'aselect/verify' => array(
-			'title' => t('A-Select verification'),
-			'description' => t('Verify your A-Select session.'),
+      'type' => MENU_CALLBACK,
+    ),
+    'aselect/verify' => array(
+      'title' => t('A-Select verification'),
+      'description' => t('Verify your A-Select session.'),
 
-			'page callback' => 'aselect_verify',
+      'page callback' => 'aselect_verify',
 
-			'access callback' => 'user_is_anonymous',
+      'access callback' => 'user_is_anonymous',
 
-			'type' => MENU_CALLBACK,
-		),
-		'aselect/logout' => array(
-			'title' => t('A-Select logout'),
-			'description' => t('Logout A-Select SSO session.'),
+      'type' => MENU_CALLBACK,
+    ),
+    'aselect/logout' => array(
+      'title' => t('A-Select logout'),
+      'description' => t('Logout A-Select SSO session.'),
 
-			'page callback' => 'aselect_logout',
+      'page callback' => 'aselect_logout',
 
-			'access callback' => 'user_is_logged_in',
+      'access callback' => 'user_is_logged_in',
 
-			'type' => MENU_CALLBACK,
-		),
-	);
+      'type' => MENU_CALLBACK,
+    ),
+  );
 
-	return $items;
+  return $items;
 }
 
 
@@ -61,108 +61,108 @@ function aselect_menu()
 /* Drupal A-Select admin configuration callback, builds up the A-Select section in the configuration. */
 function aselect_admin_form($form, $state)
 {
-	$form['aselect_app_id'] = array(
-		'#title' => t('A-Select application ID'),
-		'#description' => t('The application ID assigned to this web app.'),
+  $form['aselect_app_id'] = array(
+    '#title' => t('A-Select application ID'),
+    '#description' => t('The application ID assigned to this web app.'),
 
-		'#type' => 'textfield',
-		'#default_value' => variable_get('aselect_app_id', ''),
-		'#required' => true,
-	);
-	$form['aselect_agent_port'] = array(
-		'#title' => t('A-Select agent port'),
-		'#description' => t('The TCP port the A-Select agent is listening on.'),
+    '#type' => 'textfield',
+    '#default_value' => variable_get('aselect_app_id', ''),
+    '#required' => true,
+  );
+  $form['aselect_agent_port'] = array(
+    '#title' => t('A-Select agent port'),
+    '#description' => t('The TCP port the A-Select agent is listening on.'),
 
-		'#type' => 'textfield',
-		'#default_value' => variable_get('aselect_agent_port', 1495),
-		'#required' => true,
-	);
+    '#type' => 'textfield',
+    '#default_value' => variable_get('aselect_agent_port', 1495),
+    '#required' => true,
+  );
 
-	return system_settings_form($form);
+  return system_settings_form($form);
 }
 
 /* A-Select login callback, performs an actual login redirection. */
 function aselect_login()
 {
-	$returnParams = array();
-	if(isset($_GET['destination'])) {
-		$returnParams['dest'] = $_GET['destination'];
-	}
-	$callback = url('aselect/verify', array('absolute' => true, 'query' => $returnParams));
+  $returnParams = array();
+  if (isset($_GET['destination'])) {
+    $returnParams['dest'] = $_GET['destination'];
+  }
+  $callback = url('aselect/verify', array('absolute' => true, 'query' => $returnParams));
 
-	$response = _aselect_perform_request('authenticate', array(
-		'app_id' => variable_get('aselect_app_id'),
-		'app_url' => $callback,
-	));
+  $response = _aselect_perform_request('authenticate', array(
+    'app_id' => variable_get('aselect_app_id'),
+    'app_url' => $callback,
+  ));
 
-	if(intval($response['result_code']) != 0) {
-		_aselect_show_error('contacting the login server', $response['result_code']);
-		return;
-	}
+  if (intval($response['result_code']) != 0) {
+    _aselect_show_error('contacting the login server', $response['result_code']);
+    return;
+  }
 
-	$redirectURL = url($response['as_url'], array(
-		'absolute' => true,
-		'query' => http_build_query(array(
-			'a-select-server' => $response['a-select-server'],
-			'rid' => $response['rid'],
-		)),
-	));
-	drupal_goto($redirectURL);
+  $redirectURL = url($response['as_url'], array(
+    'absolute' => true,
+    'query' => http_build_query(array(
+      'a-select-server' => $response['a-select-server'],
+      'rid' => $response['rid'],
+    )),
+  ));
+  drupal_goto($redirectURL);
 }
 
 /* A-Select verification function, verifies a login session when the user is redirected back from the A-Select server. */
 function aselect_verify()
 {
-	if(!isset($_GET['rid']) || !isset($_GET['aselect_credentials'])) {
-		drupal_set_message(t('Incorrect verification data supplied.'), 'error');
-		return;
-	}
+  if (!isset($_GET['rid']) || !isset($_GET['aselect_credentials'])) {
+    drupal_set_message(t('Incorrect verification data supplied.'), 'error');
+    return;
+  }
 
-	$response = _aselect_perform_request('verify_credentials', array(
-		'rid' => $_GET['rid'],
-		'aselect_credentials' => $_GET['aselect_credentials'],
-	));
+  $response = _aselect_perform_request('verify_credentials', array(
+    'rid' => $_GET['rid'],
+    'aselect_credentials' => $_GET['aselect_credentials'],
+  ));
 
-	if(intval($response['result_code']) != 0) {
-		_aselect_show_error('verifying login session', $response['result_code']);
-		return;
-	}
+  if (intval($response['result_code']) != 0) {
+    _aselect_show_error('verifying login session', $response['result_code']);
+    return;
+  }
 
-	/* TODO: Store user, login was succesful. */
-	var_dump($response);
+  /* TODO: Store user, login was succesful. */
+  var_dump($response);
 
-	/* Store variables in session. */
-	if(!isset($_SESSION['aselect'])) {
-		$_SESSION['aselect'] = array();
-	}
-	$_SESSION['aselect']['#tgt'] = $response['ticket'];
-	$_SESSION['aselect']['#uid'] = $response['uid'];
-	$_SESSION['aselect']['#organization'] = $response['organization'];
-	if(isset($response['attributes'])) {
-		$_SESSION['aselect']['#attributes'] = $response['attributes'];
-	}
+  /* Store variables in session. */
+  if (!isset($_SESSION['aselect'])) {
+    $_SESSION['aselect'] = array();
+  }
+  $_SESSION['aselect']['#tgt'] = $response['ticket'];
+  $_SESSION['aselect']['#uid'] = $response['uid'];
+  $_SESSION['aselect']['#organization'] = $response['organization'];
+  if (isset($response['attributes'])) {
+    $_SESSION['aselect']['#attributes'] = $response['attributes'];
+  }
 
-	if(isset($_GET['dest'])) {
-		drupal_goto($_GET['dest']);
-	} else {
-		drupal_goto(url('/'));
-	}
+  if (isset($_GET['dest'])) {
+    drupal_goto($_GET['dest']);
+  } else {
+    drupal_goto(url('/'));
+  }
 }
 
 /* A-Select logout callback, log the user out from current and every other SSO session. */
 function aselect_logout()
 {
-	$response = _aselect_perform_request('kill_ticket', array(
-		'ticket' => $_SESSION['aselect']['#tgt'],
-	));
+  $response = _aselect_perform_request('kill_ticket', array(
+    'ticket' => $_SESSION['aselect']['#tgt'],
+  ));
 
-	if(intval($response['result_code']) != 0) {
-		_aselect_show_error('logging out', $response['result_code']);
-		return;
-	}
+  if (intval($response['result_code']) != 0) {
+    _aselect_show_error('logging out', $response['result_code']);
+    return;
+  }
 
-	/* Remove our own session variables. */
-	unset($_SESSION['aselect']);
+  /* Remove our own session variables. */
+  unset($_SESSION['aselect']);
 }
 
 
@@ -171,51 +171,51 @@ function aselect_logout()
  */
 
 /* Format an A-Select error nicely. */
-function _aselect_show_error($activity, $code)
+function _aselect_show_error($activity, $code) 
 {
-	$errorMessage = t('An error occurred while @activity: @error_message', array('@activity' => t($activity), '@error_message' => _aselect_error_message($code)));
-	drupal_set_message($errorMessage, 'error');
+  $errorMessage = t('An error occurred while @activity: @error_message', array('@activity' => t($activity), '@error_message' => _aselect_error_message($code)));
+  drupal_set_message($errorMessage, 'error');
 }
 
 /* Translate an error code to an error message. */
-function _aselect_error_message($code)
+function _aselect_error_message($code) 
 {
-        /* Semi-human-friendly error messages. */
-        $errorCodes = array(
-                '0000' => t('No error.'),
-                '0101' => t('Internal A-Select agent error.'),
-                '0102' => t('Session expired.'),
-                '0109' => t('Invalid ticket.'),
-                '010a' => t('Ticket expired.'),
-                '010b' => t('Unknown or expired ticket.'),
-                '010c' => t('A-Select server unreachable.'),
-                '010d' => t('Maximum ticket count reached.'),
-                '010e' => t('Attribute mismatch.'),
-                '0130' => t('Invalid request.'),
-                '0140' => t('Unauthorized for this application.'),
-                '0141' => t('Authorization not enabled.'),
-        );
+  /* Semi-human-friendly error messages. */
+  $errorCodes = array(
+    '0000' => t('No error.'),
+    '0101' => t('Internal A-Select agent error.'),
+    '0102' => t('Session expired.'),
+    '0109' => t('Invalid ticket.'),
+    '010a' => t('Ticket expired.'),
+    '010b' => t('Unknown or expired ticket.'),
+    '010c' => t('A-Select server unreachable.'),
+    '010d' => t('Maximum ticket count reached.'),
+    '010e' => t('Attribute mismatch.'),
+    '0130' => t('Invalid request.'),
+    '0140' => t('Unauthorized for this application.'),
+    '0141' => t('Authorization not enabled.'),
+  );
 
-        if(isset($errorCodes[$code])) {
-                return $errorCodes[$code];
-        }
-        return t('Unknown error.');
+  if (isset($errorCodes[$code])) {
+    return $errorCodes[$code];
+  }
+  return t('Unknown error.');
 }
 
 /* Perform actual A-Select request to server. Returns an associative array containing the server response. */
 function _aselect_perform_request($request, $params)
 {
-	$params['request'] = $request;
-	$query = http_build_query($params);
-	$sock = fsockopen('localhost', variable_get('aselect_agent_port', 1496));
-	if(!$sock) {
-		drupal_set_message(t('An error occurred while contacting the A-Select agent.'), 'error');
-		return null;
-	}
+  $params['request'] = $request;
+  $query = http_build_query($params);
+  $sock = fsockopen('localhost', variable_get('aselect_agent_port', 1496));
+  if(!$sock) {
+    drupal_set_message(t('An error occurred while contacting the A-Select agent.'), 'error');
+    return null;
+  }
 
-	fwrite($sock, $query . "\n");
-	$response = file_get_contents($sock);
-	fclose($sock);
+  fwrite($sock, $query . "\n");
+  $response = file_get_contents($sock);
+  fclose($sock);
 
-	return parse_str($response);
+  return parse_str($response);
 }
