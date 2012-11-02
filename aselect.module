@@ -81,7 +81,7 @@ function aselect_menu()
 	$items = array(
 		'admin/config/people/aselect' => array(
 			'title' => t('A-Select Authentication'),
-			'description' => 't(Configuration for authentication and authorization using A-Select.'),
+			'description' => t('Configuration for authentication and authorization using A-Select.'),
 
 			'page callback' => 'drupal_get_form',
 			'page arguments' => array('aselect_admin_form'),
@@ -104,7 +104,6 @@ function aselect_menu()
 			'description' => t('Verify your A-Select session.'),
 
 			'page callback' => 'aselect_verify',
-
 			'access callback' => 'user_is_anonymous',
 
 			'type' => MENU_CALLBACK,
@@ -114,7 +113,6 @@ function aselect_menu()
 			'description' => t('Logout A-Select SSO session.'),
 
 			'page callback' => 'aselect_logout',
-
 			'access callback' => 'user_is_logged_in',
 
 			'type' => MENU_CALLBACK,
@@ -150,7 +148,7 @@ function aselect_admin_form($form, $state)
 	);
 	$form['aselect_server_id'] = array(
 		'#title' => t('A-Select server ID'),
-		'#description' => t('The server ID used to identify the server.'),
+		'#description' => t('The A-Select server ID.'),
 
 		'#type' => 'textfield',
 		'#default_value' => variable_get('aselect_server_id', 'openaselect'),
@@ -223,7 +221,7 @@ function aselect_login()
 			'a-select-server' => $response['a-select-server'],
 			'rid' => $response['rid'],
 		)),
-	));
+	), HTTP_URL_JOIN_QUERY);
 	drupal_goto($redirectURL);
 }
 
@@ -246,7 +244,7 @@ function aselect_verify()
 		return;
 	}
 
-	/* TODO: Store user, login was succesful. */
+	/* UP TO IMPLEMENTOR: Store user, login was succesful. */
 
 	/* Store session variables. */
 	if(!isset($_SESSION['aselect'])) {
@@ -300,7 +298,7 @@ function aselect_perform_request($request, $params)
 	$url = http_build_url(variable_get('aselect_server_url', 'localhost/openaselect'), array(
 		'scheme' => 'https',
 		'query' => http_build_query($params),
-	), HTTP_URL_REPLACE | HTTP_URL_JOIN_QUERY);
+	), HTTP_URL_JOIN_QUERY);
 
 	$response = drupal_http_request($url);
 
@@ -315,6 +313,7 @@ function aselect_sign_request($params)
 {
 	/* Get (algorithm name => openssl definition) from algorithm storage. */
 	$algorithms = array_map('array_pop', variable_get('aselect_sign_algorithms'));
+	$algorithm = variable_get('aselect_sign_algorithm', 'sha1');
 
 	$keyData = file_get_contents(variable_get('aselect_keyfile', ''));
 	if(!$keyData) {
@@ -324,10 +323,10 @@ function aselect_sign_request($params)
 	if(!$key) {
 		return null;
 	}
-	if(!isset($algorithms[variable_get('aselect_sign_algorithm', 'sha1')])) {
+	if(!isset($algorithms[$algorithm])) {
 		return null;
 	}
-	$algorithm = $algorithms[variable_get('aselect_sign_algorithm', 'sha1')];
+	$algorithm = $algorithms[$algorithm];
 
 	if(isset($params['signature'])) {
 		unset($params['signature']);
