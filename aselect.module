@@ -254,23 +254,24 @@ function aselect_verify()
 
         /* Retrieve session attributes, if needed. */
 	if(!isset($response['attributes'])) {
-		$attributes = aselect_perform_request('attributes', array(
+		$attribute_data = aselect_perform_request('attributes', array(
 		    'ticket' => $response['ticket'],
 		    'uid' => $response['uid'],
 		    'organization' => $response['organization']
 		));
-		if($attributes === NULL || intval($response['result_code']) != 0) {
+		if($attribute_data === NULL || intval($response['result_code']) != 0) {
 			aselect_show_error('retrieving user attributes', $response['result_code']);
 			return;
 		}
 	} else {
-		$attributes = base64_decode($response['attributes']);
+		$attribute_data = base64_decode($response['attributes']);
 	}
+	/* Parse attributes. */
+	$attributes = NULL;
+	parse_str($attribute_data, $attributes);
 
 	/* Set user session variables for later use. */
-	if(!isset($_SESSION['aselect'])) {
-		$_SESSION['aselect'] = array();
-	}
+	$_SESSION['aselect'] = array();
 	$_SESSION['aselect']['uid'] = $response['uid'];
 	$_SESSION['aselect']['organization'] = $response['organization'];
 	$_SESSION['aselect']['attributes'] = $attributes;
