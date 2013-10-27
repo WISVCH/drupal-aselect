@@ -79,44 +79,43 @@ function aselect_install()
 function aselect_menu()
 {
 	$items = array(
-		'admin/config/people/aselect' => array(
-			'title' => t('A-Select Authentication'),
-			'description' => t('Configuration for authentication and authorization using A-Select.'),
+	    'admin/config/people/aselect' => array(
+	        'title' => t('A-Select Authentication'),
+	        'description' => t('Configuration for authentication and authorization using A-Select.'),
 
-			'page callback' => 'drupal_get_form',
-			'page arguments' => array('aselect_admin_form'),
+	        'page callback' => 'drupal_get_form',
+	        'page arguments' => array('aselect_admin_form'),
+                'access arguments' => array('access administration pages'),
 
-			'access arguments' => array('access administration pages'),
-			'type' => MENU_NORMAL_ITEM,
-		),
-		'aselect/login' => array(
-			'title' => t('A-Select login'),
-			'description' => t('Initiate ASelect login.'),
+	        'type' => MENU_NORMAL_ITEM,
+	    ),
+	    'aselect/login' => array(
+	        'title' => t('A-Select login'),
+	        'description' => t('Initiate ASelect login.'),
 
-			'page callback' => 'aselect_login',
+	        'page callback' => 'aselect_login',
+	        'access callback' => 'user_is_anonymous',
 
-			'access callback' => 'user_is_anonymous',
+	        'type' => MENU_CALLBACK,
+	    ),
+	    'aselect/verify' => array(
+	        'title' => t('A-Select verification'),
+	        'description' => t('Verify your A-Select session.'),
 
-			'type' => MENU_CALLBACK,
-		),
-		'aselect/verify' => array(
-			'title' => t('A-Select verification'),
-			'description' => t('Verify your A-Select session.'),
+	        'page callback' => 'aselect_verify',
+	        'access callback' => 'user_is_anonymous',
 
-			'page callback' => 'aselect_verify',
-			'access callback' => 'user_is_anonymous',
+	        'type' => MENU_CALLBACK,
+	    ),
+	    'aselect/logout' => array(
+	        'title' => t('A-Select logout'),
+	        'description' => t('Logout A-Select SSO session.'),
 
-			'type' => MENU_CALLBACK,
-		),
-		'aselect/logout' => array(
-			'title' => t('A-Select logout'),
-			'description' => t('Logout A-Select SSO session.'),
+	        'page callback' => 'aselect_logout',
+	        'access callback' => 'user_is_logged_in',
 
-			'page callback' => 'aselect_logout',
-			'access callback' => 'user_is_logged_in',
-
-			'type' => MENU_CALLBACK,
-		),
+	        'type' => MENU_CALLBACK,
+	    ),
 	);
 
 	return $items;
@@ -131,66 +130,66 @@ function aselect_menu()
 function aselect_admin_form($form, $state)
 {
 	$form['aselect_app_id'] = array(
-		'#title' => t('A-Select application ID'),
-		'#description' => t('The application ID assigned to this web app.'),
+	    '#title' => t('A-Select application ID'),
+	    '#description' => t('The application ID assigned to this web app.'),
 
-		'#type' => 'textfield',
-		'#default_value' => variable_get('aselect_app_id', ''),
-		'#required' => true,
+	    '#type' => 'textfield',
+	    '#default_value' => variable_get('aselect_app_id', ''),
+	    '#required' => true,
 	);
 	$form['aselect_server_url'] = array(
-		'#title' => t('A-Select server URL'),
-		'#description' => t('The A-Select server base URL.'),
+	    '#title' => t('A-Select server URL'),
+	    '#description' => t('The A-Select server base URL.'),
 
-		'#type' => 'textfield',
-		'#default_value' => variable_get('aselect_server_url', ''),
-		'#required' => true,
+	    '#type' => 'textfield',
+	    '#default_value' => variable_get('aselect_server_url', ''),
+	    '#required' => true,
 	);
 	$form['aselect_server_id'] = array(
-		'#title' => t('A-Select server ID'),
-		'#description' => t('The A-Select server ID.'),
+	    '#title' => t('A-Select server ID'),
+	    '#description' => t('The A-Select server ID.'),
 
-		'#type' => 'textfield',
-		'#default_value' => variable_get('aselect_server_id', 'openaselect'),
-		'#required' => true,
+	    '#type' => 'textfield',
+	    '#default_value' => variable_get('aselect_server_id', 'openaselect'),
+	    '#required' => true,
 	);
 
 	$form['aselect_sign'] = array(
-		'#title' => t('Enable request signing'),
-		'#description' => t('Whether or not to sign the request sent to the A-Select server.'),
+	    '#title' => t('Enable request signing'),
+	    '#description' => t('Whether or not to sign the request sent to the A-Select server.'),
 
-		'#type' => 'radios',
-		'#options' => array(
-			'1' => t('Enable'),
-			'0' => t('Disable'),
-		),
-		'#default_value' => variable_get('aselect_sign', 0),
-		'#required' => true,
+	    '#type' => 'radios',
+	    '#options' => array(
+	        '1' => t('Enable'),
+	        '0' => t('Disable'),
+	    ),
+	    '#default_value' => variable_get('aselect_sign', 0),
+	    '#required' => true,
 	);
 	$form['aselect_keyfile'] = array(
-		'#title' => t('Signature keyfile'),
-		'#description' => t('File path to the keyfile used to sign the request.'),
+	    '#title' => t('Signature keyfile'),
+	    '#description' => t('File path to the keyfile used to sign the request.'),
 
-		'#type' => 'textfield',
-		'#default_value' => variable_get('aselect_keyfile', ''),
-		'#required' => false,
+	    '#type' => 'textfield',
+	    '#default_value' => variable_get('aselect_keyfile', ''),
+	    '#required' => false,
 	);
 	$form['aselect_keyphrase'] = array(
-		'#title' => t('Signature keyphrase'),
-		'#description' => t('The passphrase used to decrypt the keyfile.'),
+	    '#title' => t('Signature keyphrase'),
+	    '#description' => t('The passphrase used to decrypt the keyfile.'),
 
-		'#type' => 'password',
-		'#default_value' => variable_get('aselect_keyphrase', ''),
-		'#required' => false,
+	    '#type' => 'password',
+	    '#default_value' => variable_get('aselect_keyphrase', ''),
+	    '#required' => false,
 	);
 	$form['aselect_sign_algorithm'] = array(
-		'#title' => t('Request signing algorithm'),
-		'#description' => t('The algorithm used to sign the request.'),
+	    '#title' => t('Request signing algorithm'),
+	    '#description' => t('The algorithm used to sign the request.'),
 
-		'#type' => 'select',
-		'#options' => array_map('array_shift', variable_get('aselect_sign_algorithms')),
-		'#default_value' => variable_get('aselect_sign_algorithm', 'sha1'),
-		'#required' => false,
+	    '#type' => 'select',
+	    '#options' => array_map('array_shift', variable_get('aselect_sign_algorithms')),
+	    '#default_value' => variable_get('aselect_sign_algorithm', 'sha1'),
+	    '#required' => false,
 	);
 
 	return system_settings_form($form);
@@ -199,6 +198,7 @@ function aselect_admin_form($form, $state)
 /* A-Select login callback, performs an actual login redirection. */
 function aselect_login()
 {
+	/* Request login URL. */
 	$returnParams = array();
 	if(isset($_SERVER['HTTP_REFERER'])) {
 		$returnParams['dest'] = $_SERVER['HTTP_REFERER'];
@@ -206,51 +206,66 @@ function aselect_login()
 	$callback = url('aselect/verify', array('absolute' => true, 'query' => $returnParams));
 
 	$response = aselect_perform_request('authenticate', array(
-                'app_id' => variable_get('aselect_app_id'),
-                'app_url' => $callback,
-                'a-select-server' => variable_get('aselect_server_id')
-        ));
+	    'app_id' => variable_get('aselect_app_id'),
+	    'app_url' => $callback,
+	    'a-select-server' => variable_get('aselect_server_id')
+	));
 
-	if(intval($response['result_code']) != 0) {
+	if($response === NULL || intval($response['result_code']) != 0) {
 		aselect_show_error('contacting the login server', $response['result_code']);
 		return;
 	}
 
+	/* Build redirect URL. */
 	$redirectURL = http_build_url($response['as_url'], array(
-		'query' => http_build_query(array(
-			'a-select-server' => $response['a-select-server'],
-			'rid' => $response['rid'],
-		), '', '&'),
+	        'query' => http_build_query(array(
+	        'a-select-server' => $response['a-select-server'],
+	        'rid' => $response['rid'],
+	    ), '', '&'),
 	), HTTP_URL_JOIN_QUERY);
 	
 	// Tijdelijke beun oplossing, waarom doen we dit?
 	$redirectURL = str_replace("amp;","",$redirectURL);
-	
+
+	/* Redirect user. */
 	drupal_goto($redirectURL);
 }
 
 /* A-Select verification function, verifies a login session when the user is redirected back from the A-Select server. */
 function aselect_verify()
 {
+	/* Make sure we're not called by some random idiot. */
 	if(!isset($_GET['rid']) || !isset($_GET['aselect_credentials'])) {
 		drupal_set_message(t('Incorrect verification data supplied.'), 'error');
 		return;
 	}
 
 	$response = aselect_perform_request('verify_credentials', array(
-                'a-select-server' => variable_get('aselect_server_id'),
-                'rid' => $_GET['rid'],
-                'aselect_credentials' => $_GET['aselect_credentials'],
-        ));
+	    'a-select-server' => variable_get('aselect_server_id'),
+	    'rid' => $_GET['rid'],
+	    'aselect_credentials' => $_GET['aselect_credentials'],
+	));
 
-	if(intval($response['result_code']) != 0) {
+	/* Make sure the session is valid. */
+	if($response === NULL || intval($response['result_code']) != 0) {
 		aselect_show_error('verifying login session', $response['result_code']);
 		return;
 	}
 
 	/* UP TO IMPLEMENTOR: Store user, login was succesful. */
 
-	/* Store session variables. */
+	/* Retrieve session attributes. */
+	$attributes = aselect_perform_request('attributes', array(
+	    'ticket' => $response['ticket'],
+	    'uid' => $response['uid'],
+	    'organization' => $response['organization']
+	));
+	if($attributes === NULL || intval($response['result_code']) != 0) {
+		aselect_show_error('retrieving user attributes', $response['result_code']);
+		return;
+	}
+
+	/* TODO: Process attributes properly. */
 	if(!isset($_SESSION['aselect'])) {
 		$_SESSION['aselect'] = array();
 	}
@@ -259,6 +274,7 @@ function aselect_verify()
 		$_SESSION['aselect']['#attributes'] = $response['attributes'];
 	}
 
+	/* Redirect to whatever page we came from, or just to the home page if we have none. */
 	if(isset($_GET['dest'])) {
 		drupal_goto($_GET['dest']);
 	} else {
@@ -269,7 +285,9 @@ function aselect_verify()
 /* A-Select logout callback, log the user out from current and every other SSO session. */
 function aselect_logout()
 {
+	/* UP TO IMPLEMENTOR: log user out from local session. */
 
+	/* TODO: Log out from SSO. */
 }
 
 
@@ -294,23 +312,26 @@ function aselect_show_error($activity, $code)
 /* Perform actual A-Select request to server. Returns an associative array containing the server response. */
 function aselect_perform_request($request, $params)
 {
+	/* Sign request if we need to. */
 	if(variable_get('aselect_sign', 0)) {
 		$params['signature'] = aselect_sign_request($params);
 	}
 	$params['request'] = $request;
 
+	/* Perform actual request. */
 	$url = http_build_url(variable_get('aselect_server_url', 'localhost/openaselect'), array(
-		'scheme' => 'https',
-		'query' => http_build_query($params, '', '&'),
+	    'scheme' => 'https',
+	    'query' => http_build_query($params, '', '&'),
 	), HTTP_URL_JOIN_QUERY);
 
 	$response = drupal_http_request($url);
-
 	if($response->code != 200) {
 		return null;
 	}
-	parse_str($response->data, $out);
-	return $out;
+
+	/* Parse response, being a regular query string. */
+	parse_str($response->data, $data);
+	return $data;
 }
 
 /* Sign A-Select request for extra security, if configured and/or required by server. */
@@ -320,6 +341,7 @@ function aselect_sign_request($params)
 	$algorithms = array_map('array_pop', variable_get('aselect_sign_algorithms'));
 	$algorithm = variable_get('aselect_sign_algorithm', 'sha1');
 
+        /* Attempt to parse private key. */
 	$keyData = file_get_contents(variable_get('aselect_keyfile', ''));
 	if(!$keyData) {
 		return null;
@@ -327,12 +349,15 @@ function aselect_sign_request($params)
 	$key = openssl_pkey_get_private($keyData, variable_get('aselect_keyphrase', ''));
 	if(!$key) {
 		return null;
-	}
+        }
+
+        /* Attempt to get OpenSSL definition for signing algorithm. */
 	if(!isset($algorithms[$algorithm])) {
 		return null;
 	}
 	$algorithm = $algorithms[$algorithm];
 
+        /* Clean and sort parameters. */
 	if(isset($params['signature'])) {
 		unset($params['signature']);
 	}
@@ -341,8 +366,9 @@ function aselect_sign_request($params)
 	}
 	sort($params);
 
+        /* And have OpenSSL sign it. */
 	$signature = '';
-	if(!openssl_sign(http_build_query($params), $signature, $key, $algorithm)) {
+	if(!openssl_sign(http_build_query($params, '', '&'), $signature, $key, $algorithm)) {
 		return null;
 	}
 	return $signature;
