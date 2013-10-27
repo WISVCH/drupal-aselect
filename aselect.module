@@ -67,7 +67,7 @@ function aselect_install()
 		$signAlgorithms['md2'] = array('MD2', OPENSSL_ALGO_MD2);
 	}
 	if(defined('OPENSSL_ALGO_MD4')) {
-		$signAlgorithms['md2'] = array('MD2', OPENSSL_ALGO_MD2);
+		$signAlgorithms['md4'] = array('MD4', OPENSSL_ALGO_MD4);
 	}
 	if(defined('OPENSSL_ALGO_MD5')) {
 		$signAlgorithms['md5'] = array('MD5', OPENSSL_ALGO_MD5);
@@ -266,17 +266,18 @@ function aselect_verify()
 	} else {
 		$attribute_data = base64_decode($response['attributes']);
 	}
+
 	/* Parse attributes. */
 	$attributes = NULL;
 	parse_str($attribute_data, $attributes);
 
-	/* Set user session variables for later use. */
+	/* Set relevant attributes in session. */
 	$_SESSION['aselect'] = array();
 	$_SESSION['aselect']['uid'] = $response['uid'];
 	$_SESSION['aselect']['organization'] = $response['organization'];
-	$_SESSION['aselect']['attributes'] = $attributes;
 
-	/* UP TO IMPLEMENTOR: Store user, login was succesful. */
+	/* Call authentication hooks. */
+	module_invoke_all('aselect_login', $response['uid'], $response['organization'], $attributes);
 
 	/* Redirect to whatever page we came from, or just to the home page if we have none. */
 	if(isset($_GET['dest'])) {
@@ -289,7 +290,8 @@ function aselect_verify()
 /* A-Select logout callback, log the user out from current and every other SSO session. */
 function aselect_logout()
 {
-	/* UP TO IMPLEMENTOR: log user out from local session. */
+	/* Call logout hooks. */
+	module_invoke_all('aselect_logout');
 
 	/* TODO: Log out from SSO. */
 }
