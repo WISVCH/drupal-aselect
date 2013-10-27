@@ -84,7 +84,7 @@ function aselect_menu()
 	        'description' => t('Configuration for authentication and authorization using A-Select.'),
 
 	        'page callback' => 'drupal_get_form',
-	        'page arguments' => array('aselect_admin_form'),
+	        'page arguments' => array('_aselect_admin_form'),
                 'access arguments' => array('access administration pages'),
 
 	        'type' => MENU_NORMAL_ITEM,
@@ -93,7 +93,7 @@ function aselect_menu()
 	        'title' => t('A-Select login'),
 	        'description' => t('Initiate ASelect login.'),
 
-	        'page callback' => 'aselect_login',
+	        'page callback' => '_aselect_login',
 	        'access callback' => 'user_is_anonymous',
 
 	        'type' => MENU_CALLBACK,
@@ -102,7 +102,7 @@ function aselect_menu()
 	        'title' => t('A-Select verification'),
 	        'description' => t('Verify your A-Select session.'),
 
-	        'page callback' => 'aselect_verify',
+	        'page callback' => '_aselect_verify',
 	        'access callback' => 'user_is_anonymous',
 
 	        'type' => MENU_CALLBACK,
@@ -111,7 +111,7 @@ function aselect_menu()
 	        'title' => t('A-Select logout'),
 	        'description' => t('Logout A-Select SSO session.'),
 
-	        'page callback' => 'aselect_logout',
+	        'page callback' => '_aselect_logout',
 	        'access callback' => 'user_is_logged_in',
 
 	        'type' => MENU_CALLBACK,
@@ -128,7 +128,7 @@ function aselect_menu()
  */
 
 /* Drupal A-Select admin configuration callback, builds up the A-Select section in the configuration. */
-function aselect_admin_form($form, $state)
+function _aselect_admin_form($form, $state)
 {
 	$form['aselect_app_id'] = array(
 	    '#title' => t('A-Select application ID'),
@@ -197,7 +197,7 @@ function aselect_admin_form($form, $state)
 }
 
 /* A-Select login callback, performs an actual login redirection. */
-function aselect_login()
+function _aselect_login()
 {
 	/* Request login URL. */
 	$returnParams = array();
@@ -206,20 +206,20 @@ function aselect_login()
 	}
 	$callback = url('aselect/verify', array('absolute' => true, 'query' => $returnParams));
 
-	$response = aselect_perform_request('authenticate', array(
+	$response = _aselect_perform_request('authenticate', array(
 	    'app_id' => variable_get('aselect_app_id'),
 	    'app_url' => $callback,
 	    'a-select-server' => variable_get('aselect_server_id')
 	));
 
 	if($response === NULL || intval($response['result_code']) != 0) {
-		aselect_show_error('contacting the login server', $response['result_code']);
+		_aselect_show_error('contacting the login server', $response['result_code']);
 		return;
 	}
 
 	/* Build redirect URL. */
 	$redirectURL = http_build_url($response['as_url'], array(
-	        'query' => http_build_query(array(
+	    'query' => http_build_query(array(
 	        'a-select-server' => $response['a-select-server'],
 	        'rid' => $response['rid'],
 	    ), '', '&'),
@@ -233,7 +233,7 @@ function aselect_login()
 }
 
 /* A-Select verification function, verifies a login session when the user is redirected back from the A-Select server. */
-function aselect_verify()
+function _aselect_verify()
 {
 	/* Make sure we're not called by some random idiot. */
 	if(!isset($_GET['rid']) || !isset($_GET['aselect_credentials'])) {
@@ -241,7 +241,7 @@ function aselect_verify()
 		return;
 	}
 
-	$response = aselect_perform_request('verify_credentials', array(
+	$response = _aselect_perform_request('verify_credentials', array(
 	    'a-select-server' => variable_get('aselect_server_id'),
 	    'rid' => $_GET['rid'],
 	    'aselect_credentials' => $_GET['aselect_credentials'],
@@ -249,19 +249,19 @@ function aselect_verify()
 
 	/* Make sure the session is valid. */
 	if($response === NULL || intval($response['result_code']) != 0) {
-		aselect_show_error('verifying login session', $response['result_code']);
+		_aselect_show_error('verifying login session', $response['result_code']);
 		return;
 	}
 
         /* Retrieve session attributes, if needed. */
 	if(!isset($response['attributes'])) {
-		$attribute_data = aselect_perform_request('attributes', array(
+		$attribute_data = _aselect_perform_request('attributes', array(
 		    'ticket' => $response['ticket'],
 		    'uid' => $response['uid'],
 		    'organization' => $response['organization']
 		));
 		if($attribute_data === NULL || intval($response['result_code']) != 0) {
-			aselect_show_error('retrieving user attributes', $response['result_code']);
+			_aselect_show_error('retrieving user attributes', $response['result_code']);
 			return;
 		}
 	} else {
@@ -271,11 +271,6 @@ function aselect_verify()
 	/* Parse attributes. */
 	$attributes = NULL;
 	parse_str($attribute_data, $attributes);
-
-	/* Set relevant attributes in session. */
-	$_SESSION['aselect'] = array();
-	$_SESSION['aselect']['uid'] = $response['uid'];
-	$_SESSION['aselect']['organization'] = $response['organization'];
 
 	/* Call authentication hooks. */
 	module_invoke_all('aselect_login', $response['uid'], $response['organization'], $attributes);
@@ -288,8 +283,9 @@ function aselect_verify()
 	}
 }
 
-/* A-Select logout callback, log the user out from current and every other SSO session. */
-function aselect_logout()
+/* A-Select logout callback, log the user out from current and every other SSO session.
+ * Should be called by implementing autbentication wrapper upon logout. Will not return. */
+function _aselect_logout()
 {
 	/* Call logout hooks. */
 	module_invoke_all('aselect_logout');
@@ -305,7 +301,7 @@ function aselect_logout()
  */
 
 /* Format an A-Select error nicely. */
-function aselect_show_error($activity, $code)
+function _aselect_show_error($activity, $code)
 {
 	$errorCodes = variable_get('aselect_error_codes');
 	if(isset($errorCodes[$code])) {
@@ -319,11 +315,11 @@ function aselect_show_error($activity, $code)
 }
 
 /* Perform actual A-Select request to server. Returns an associative array containing the server response. */
-function aselect_perform_request($request, $params)
+function _aselect_perform_request($request, $params)
 {
 	/* Sign request if we need to. */
 	if(variable_get('aselect_sign', 0)) {
-		$params['signature'] = aselect_sign_request($params);
+		$params['signature'] = _aselect_sign_request($params);
 	}
 	$params['request'] = $request;
 
@@ -344,7 +340,7 @@ function aselect_perform_request($request, $params)
 }
 
 /* Sign A-Select request for extra security, if configured and/or required by server. */
-function aselect_sign_request($params)
+function _aselect_sign_request($params)
 {
 	/* Get (algorithm name => openssl definition) from algorithm storage. */
 	$algorithms = array_map('array_pop', variable_get('aselect_sign_algorithms'));
