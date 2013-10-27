@@ -1,7 +1,7 @@
 <?php
 
 /**
- * A-Select Drupal hooks
+ * A-Select Drupal hooks.
  */
 
 /* A-Select Drupal install hook. Implements hook_install(). */
@@ -120,6 +120,7 @@ function aselect_menu()
 
 	return $items;
 }
+
 
 
 /**
@@ -293,8 +294,10 @@ function aselect_logout()
 	/* Call logout hooks. */
 	module_invoke_all('aselect_logout');
 
-	/* TODO: Log out from SSO. */
+	/* Allow user to log out from SSO by redirecting to the root 'control panel' page. */
+	drupal_goto(variable_get('aselect_server_url'));
 }
+
 
 
 /**
