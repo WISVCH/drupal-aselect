@@ -71,7 +71,7 @@ function aselect_install()
 	}
 	if(defined('OPENSSL_ALGO_MD5')) {
 		$signAlgorithms['md5'] = array('MD5', OPENSSL_ALGO_MD5);
-	);
+	}
 	variable_set('aselect_sign_algorithms', $signAlgorithms);
 }
 
@@ -200,8 +200,8 @@ function aselect_admin_form($form, $state)
 function aselect_login()
 {
 	$returnParams = array();
-	if(isset($_GET['destination'])) {
-		$returnParams['dest'] = $_GET['destination'];
+	if(isset($_SERVER['HTTP_REFERER'])) {
+		$returnParams['dest'] = $_SERVER['HTTP_REFERER'];
 	}
 	$callback = url('aselect/verify', array('absolute' => true, 'query' => $returnParams));
 
@@ -220,8 +220,12 @@ function aselect_login()
 		'query' => http_build_query(array(
 			'a-select-server' => $response['a-select-server'],
 			'rid' => $response['rid'],
-		)),
+		), '', '&'),
 	), HTTP_URL_JOIN_QUERY);
+	
+	// Tijdelijke beun oplossing, waarom doen we dit?
+	$redirectURL = str_replace("amp;","",$redirectURL);
+	
 	drupal_goto($redirectURL);
 }
 
@@ -297,7 +301,7 @@ function aselect_perform_request($request, $params)
 
 	$url = http_build_url(variable_get('aselect_server_url', 'localhost/openaselect'), array(
 		'scheme' => 'https',
-		'query' => http_build_query($params),
+		'query' => http_build_query($params, '', '&'),
 	), HTTP_URL_JOIN_QUERY);
 
 	$response = drupal_http_request($url);
@@ -305,7 +309,8 @@ function aselect_perform_request($request, $params)
 	if($response->code != 200) {
 		return null;
 	}
-	return parse_str($response->data);
+	parse_str($response->data, $out);
+	return $out;
 }
 
 /* Sign A-Select request for extra security, if configured and/or required by server. */
@@ -334,10 +339,10 @@ function aselect_sign_request($params)
 	if(isset($params['request'])) {
 		unset($params['request']);
 	}
-	sort($signParams);
+	sort($params);
 
 	$signature = '';
-	if(!openssl_sign(http_build_query($signParams), $data, $key, $algorithm)) {
+	if(!openssl_sign(http_build_query($params), $signature, $key, $algorithm)) {
 		return null;
 	}
 	return $signature;
