@@ -71,7 +71,7 @@ function aselect_install()
 	}
 	if(defined('OPENSSL_ALGO_MD5')) {
 		$signAlgorithms['md5'] = array('MD5', OPENSSL_ALGO_MD5);
-	);
+	}
 	variable_set('aselect_sign_algorithms', $signAlgorithms);
 }
 
