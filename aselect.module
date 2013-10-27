@@ -252,27 +252,30 @@ function aselect_verify()
 		return;
 	}
 
-	/* UP TO IMPLEMENTOR: Store user, login was succesful. */
-
-	/* Retrieve session attributes. */
-	$attributes = aselect_perform_request('attributes', array(
-	    'ticket' => $response['ticket'],
-	    'uid' => $response['uid'],
-	    'organization' => $response['organization']
-	));
-	if($attributes === NULL || intval($response['result_code']) != 0) {
-		aselect_show_error('retrieving user attributes', $response['result_code']);
-		return;
+        /* Retrieve session attributes, if needed. */
+	if(!isset($response['attributes'])) {
+		$attributes = aselect_perform_request('attributes', array(
+		    'ticket' => $response['ticket'],
+		    'uid' => $response['uid'],
+		    'organization' => $response['organization']
+		));
+		if($attributes === NULL || intval($response['result_code']) != 0) {
+			aselect_show_error('retrieving user attributes', $response['result_code']);
+			return;
+		}
+	} else {
+		$attributes = base64_decode($response['attributes']);
 	}
 
-	/* TODO: Process attributes properly. */
+	/* Set user session variables for later use. */
 	if(!isset($_SESSION['aselect'])) {
 		$_SESSION['aselect'] = array();
 	}
-	$_SESSION['aselect']['#uid'] = $response['uid'];
-	if(isset($response['attributes'])) {
-		$_SESSION['aselect']['#attributes'] = $response['attributes'];
-	}
+	$_SESSION['aselect']['uid'] = $response['uid'];
+	$_SESSION['aselect']['organization'] = $response['organization'];
+	$_SESSION['aselect']['attributes'] = $attributes;
+
+	/* UP TO IMPLEMENTOR: Store user, login was succesful. */
 
 	/* Redirect to whatever page we came from, or just to the home page if we have none. */
 	if(isset($_GET['dest'])) {
