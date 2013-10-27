@@ -4,4 +4,4 @@ description = Provides A-Select authentication and authorization.
 core = 7.x
 php = 5.x
 
-configure = admin/config/content/aselect
+configure = admin/config/people/aselect
